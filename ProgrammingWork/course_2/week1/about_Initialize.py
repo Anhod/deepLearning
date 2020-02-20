@@ -178,3 +178,5 @@ axes = plt.gca()
 axes.set_xlim([-1.5, 1.5])
 axes.set_ylim([-1.5, 1.5])
 init_utils.plot_decision_boundary(lambda x: init_utils.predict_dec(parameters, x.T), train_X, train_Y)
+
+print("我爱你，思齐")

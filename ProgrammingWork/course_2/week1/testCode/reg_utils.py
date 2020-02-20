@@ -178,7 +178,7 @@ def update_parameters(parameters, grads, learning_rate):
     return parameters
 
 def load_2D_dataset(is_plot=True):
-    data = sio.loadmat('datasets/data.mat')            #keys为['__header__', '__version__', '__globals__', 'X', 'y', 'yval', 'Xval']
+    data = sio.loadmat('../datasets/data.mat')            #keys为['__header__', '__version__', '__globals__', 'X', 'y', 'yval', 'Xval']
 
     train_X = data['X'].T
     train_Y = data['y'].T
