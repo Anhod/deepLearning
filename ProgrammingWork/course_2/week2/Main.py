@@ -33,14 +33,6 @@ def update_parameters_with_gd(parameters,learning_rate,grads):
     return parameters
 
 
-parameters,grads,learning_rate = update_parameters_with_gd_test_case()
-
-parameters = update_parameters_with_gd(parameters,learning_rate,grads)
-print("W1 =\n" + str(parameters["W1"]))
-print("b1 =\n" + str(parameters["b1"]))
-print("W2 =\n" + str(parameters["W2"]))
-print("b2 =\n" + str(parameters["b2"]))
-
 '''
 A variant of this is Stochastic Gradient Descent (SGD，随机梯度下降), which is equivalent to mini-batch gradient descent 
 where each mini-batch has just 1 example. The update rule that you have just implemented does not change. 
@@ -88,7 +80,7 @@ an intermediate number of examples for each step. With mini-batch gradient desce
 you loop over the mini-batches instead of looping over individual training examples.
 '''
 
-#-----------------------------------根据小批量的大小对数据集进行随机分组-----------------------------------
+#根据小批量的大小对数据集进行随机分组
 def random_mini_batches(X,Y,mini_batch_size=64,seed=0):
     np.random.seed(seed)
 
@@ -117,13 +109,101 @@ def random_mini_batches(X,Y,mini_batch_size=64,seed=0):
 
     return mini_batches
 
-X_assess, Y_assess, mini_batch_size = random_mini_batches_test_case()
-mini_batches = random_mini_batches(X_assess, Y_assess, mini_batch_size)
+#-------------------------------------------动量优化算法-------------------------------------------
+'''
+Because mini-batch gradient descent makes a parameter update after seeing just a subset of examples, 
+the direction of the update has some variance, and so the path taken by mini-batch gradient descent will "oscillate" 
+toward convergence. Using momentum can reduce these oscillations.
 
-print ("shape of the 1st mini_batch_X: " + str(mini_batches[0][0].shape))
-print ("shape of the 2nd mini_batch_X: " + str(mini_batches[1][0].shape))
-print ("shape of the 3rd mini_batch_X: " + str(mini_batches[2][0].shape))
-print ("shape of the 1st mini_batch_Y: " + str(mini_batches[0][1].shape))
-print ("shape of the 2nd mini_batch_Y: " + str(mini_batches[1][1].shape))
-print ("shape of the 3rd mini_batch_Y: " + str(mini_batches[2][1].shape))
-print ("mini batch sanity check: " + str(mini_batches[0][0][0][0:3]))
+开始动量梯度下降
+'''
+#对Vdw,Vdb进行初始化，它的对数与层数相同（看公式即可得知）
+def initialize_velocity(prameters):
+    L = len(parameters) // 2
+    v = {}
+
+    for i in range(L):
+        v["dW"+str(i+1)] = np.zeros((parameters["W"+str(i+1)].shape[0],parameters["W"+str(i+1)].shape[1]))
+        v["db"+str(i+1)] = np.zeros((parameters["b"+str(i+1)].shape[0],parameters["b"+str(i+1)].shape[1]))
+
+    return v
+
+#利用动量来更新梯度
+def update_parameters_with_momentum(parameters,grads,v,beta,learning_rate):
+    L = len(parameters) // 2
+
+    for l in range(L):
+        v["dW" + str(l+1)] = beta * v["dW" + str(l+1)] + (1-beta) * grads["dW" + str(l+1)]
+        v["db" + str(l+1)] = beta * v["db" + str(l+1)] + (1-beta) * grads["db" + str(l+1)]
+
+        parameters["W" + str(l+1)] = parameters["W" + str(l+1)] -learning_rate * v["dW" + str(l+1)]
+        parameters["b" + str(l+1)] = parameters["b" + str(l+1)] -learning_rate * v["db" + str(l+1)]
+
+    return parameters,v
+'''
+Note that:
+    ->The velocity is initialized with zeros. So the algorithm will take a few iterations to "build up" velocity and 
+     start to take bigger steps.
+    ->If  β=0 , then this just becomes standard gradient descent without momentum.
+'''
+
+#-------------------------------------------Adam优化算法-------------------------------------------
+def initialize_Adam(parameters):
+    L =len(parameters) // 2
+    v = {}
+    s = {}
+
+    for i in range(L):
+        v["dW"+str(i+1)] = np.zeros((parameters["W" + str(i+1)].shape[0],parameters["W" + str(i+1)].shape[1]))
+        v["db"+str(i+1)] = np.zeros((parameters["b" + str(i+1)].shape[0],parameters["b" + str(i+1)].shape[1]))
+
+        s["dW"+str(i+1)] = np.zeros((parameters["W" + str(i+1)].shape[0],parameters["W" + str(i+1)].shape[1]))
+        s["db"+str(i+1)] = np.zeros((parameters["b" + str(i+1)].shape[0],parameters["b" + str(i+1)].shape[1]))
+
+    return v,s
+
+#使用Adam来更新参数
+def update_parameters_with_adam(parameters,grads,v,s,t,learning_rate = 0.01,beta1=0.9,beta2=0.999,epsilon=1e-8):
+    """
+       Update parameters using Adam
+
+       Arguments:
+       parameters -- python dictionary containing your parameters:
+                       parameters['W' + str(l)] = Wl
+                       parameters['b' + str(l)] = bl
+       grads -- python dictionary containing your gradients for each parameters:
+                       grads['dW' + str(l)] = dWl
+                       grads['db' + str(l)] = dbl
+       v -- Adam variable, moving average of the first gradient, python dictionary
+       s -- Adam variable, moving average of the squared gradient, python dictionary
+       learning_rate -- the learning rate, scalar.
+       beta1 -- Exponential decay hyperparameter for the first moment estimates
+       beta2 -- Exponential decay hyperparameter for the second moment estimates
+       epsilon -- hyperparameter preventing division by zero in Adam updates
+
+       Returns:
+       parameters -- python dictionary containing your updated parameters
+       v -- Adam variable, moving average of the first gradient, python dictionary
+       s -- Adam variable, moving average of the squared gradient, python dictionary
+       """
+    L = len(parameters) // 2
+
+    v_corrected = {}
+    s_corrected = {}
+
+    for l in range(L):
+        v["dW" + str(l + 1)] = beta1 * v["dW" + str(l + 1)] + (1-beta1) * grads["dW" + str(l + 1)]
+        v["db" + str(l + 1)] = beta1 * v["db" + str(l + 1)] + (1-beta1) * grads["db" + str(l + 1)]
+        v_corrected["dW" + str(l + 1)] = v["dW" + str(l + 1)] / (1 - np.power(beta1,t))
+        v_corrected["db" + str(l + 1)] = v["db" + str(l + 1)] / (1 - np.power(beta1,t))
+
+        s["dW" + str(l + 1)] = beta2 * s["dW" + str(l + 1)] + (1-beta2) * np.square(grads["dW" + str(l + 1)])
+        s["db" + str(l + 1)] = beta2 * s["db" + str(l + 1)] + (1-beta2) * np.square(grads["db" + str(l + 1)])
+        s_corrected["dW" + str(l + 1)] = s["dW" + str(l + 1)] / (1 - np.power(beta2,t))
+        s_corrected["db" + str(l + 1)] = s["db" + str(l + 1)] / (1 - np.power(beta2,t))
+
+        #更新参数
+        parameters["W" + str(l + 1)] = parameters["W" + str(l + 1)] - learning_rate * (v_corrected["dW" + str(l + 1)] / np.sqrt(s_corrected["dW" + str(l + 1)] + epsilon))
+        parameters["b" + str(l + 1)] = parameters["b" + str(l + 1)] - learning_rate * (v_corrected["db" + str(l + 1)] / np.sqrt(s_corrected["db" + str(l + 1)] + epsilon))
+
+    return parameters, v, s
