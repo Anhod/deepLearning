@@ -81,3 +81,49 @@ for i in range(0, num_iterations):
 ```
 
 '''
+'''
+In practice, you'll often get faster results if you do not use neither the whole training set, 
+nor only one training example, to perform each update. Mini-batch gradient descent uses 
+an intermediate number of examples for each step. With mini-batch gradient descent, 
+you loop over the mini-batches instead of looping over individual training examples.
+'''
+
+#-----------------------------------根据小批量的大小对数据集进行随机分组-----------------------------------
+def random_mini_batches(X,Y,mini_batch_size=64,seed=0):
+    np.random.seed(seed)
+
+    m = X.shape[1]
+    mini_batches=[]
+
+    #对原有数据集和标签向量进行重新分组
+    permutation = list(np.random.permutation(m))
+    shuffled_X = X[:,permutation]
+    shuffled_Y = Y[:,permutation].reshape((1,m))
+
+    num_complete_minibatches = math.floor(m / mini_batch_size)
+    for k in range(num_complete_minibatches):
+        mini_batch_X = shuffled_X[:, mini_batch_size*k : mini_batch_size*(k+1)]
+        mini_batch_Y = shuffled_Y[:, mini_batch_size*k : mini_batch_size*(k+1)]
+
+        mini_batch = (mini_batch_X,mini_batch_Y)
+        mini_batches.append(mini_batch)
+
+    if m % mini_batch_size != 0:
+        mini_batch_X = shuffled_X[:,num_complete_minibatches * mini_batch_size : ]
+        mini_batch_Y = shuffled_Y[:,num_complete_minibatches * mini_batch_size : ]
+
+        mini_batch = (mini_batch_X, mini_batch_Y)
+        mini_batches.append(mini_batch)
+
+    return mini_batches
+
+X_assess, Y_assess, mini_batch_size = random_mini_batches_test_case()
+mini_batches = random_mini_batches(X_assess, Y_assess, mini_batch_size)
+
+print ("shape of the 1st mini_batch_X: " + str(mini_batches[0][0].shape))
+print ("shape of the 2nd mini_batch_X: " + str(mini_batches[1][0].shape))
+print ("shape of the 3rd mini_batch_X: " + str(mini_batches[2][0].shape))
+print ("shape of the 1st mini_batch_Y: " + str(mini_batches[0][1].shape))
+print ("shape of the 2nd mini_batch_Y: " + str(mini_batches[1][1].shape))
+print ("shape of the 3rd mini_batch_Y: " + str(mini_batches[2][1].shape))
+print ("mini batch sanity check: " + str(mini_batches[0][0][0][0:3]))
