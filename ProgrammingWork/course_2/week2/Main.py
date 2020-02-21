@@ -5,8 +5,8 @@ import math
 import sklearn
 import sklearn.datasets
 
-from opt_utils import load_params_and_grads,initialize_parameters,forward_propagation,backward_propagation
-from opt_utils import compute_cost,predict,plot_decision_boundary,predict_dec,load_dataset,sigmoid,relu
+from opt_utils_v1a import load_params_and_grads,initialize_parameters,forward_propagation,backward_propagation
+from opt_utils_v1a import compute_cost,predict,plot_decision_boundary,predict_dec,load_dataset,sigmoid,relu
 from testCase import *
 
 plt.rcParams["figure.figsize"] = (7.0,4.0)
@@ -118,7 +118,7 @@ toward convergence. Using momentum can reduce these oscillations.
 开始动量梯度下降
 '''
 #对Vdw,Vdb进行初始化，它的对数与层数相同（看公式即可得知）
-def initialize_velocity(prameters):
+def initialize_velocity(parameters):
     L = len(parameters) // 2
     v = {}
 
@@ -242,7 +242,7 @@ def model(X,Y,layers_dims,optimizer,learning_rate = 0.0007,mini_batch_size=64,be
             a3,caches = forward_propagation(minibatch_X,parameters)
 
             #计算损失函数
-            cost_total += compute_cost(a3,minibatch_Y)
+            cost_total =cost_total + compute_cost(a3,minibatch_Y)
 
             #反向传播
             grads = backward_propagation(minibatch_X,minibatch_Y,caches)
@@ -256,99 +256,10 @@ def model(X,Y,layers_dims,optimizer,learning_rate = 0.0007,mini_batch_size=64,be
                 t = t + 1
                 parameters,v,s = update_parameters_with_adam(parameters,grads,v,s,t,learning_rate,beta1,beta2,epsilon)
 
-        costavg = cost_total / m
-
-        if print_cost and i % 1000==0:
-            print("Cost after epoch %i:%f" % (i,costavg))
-            costs.append(costavg)
-        if print_cost and i % 100==0:
-            costs.append(costavg)
-
-                # plot the cost
-    plt.plot(costs)
-    plt.ylabel('cost')
-    plt.xlabel('epochs (per 100)')
-    plt.title("Learning rate = " + str(learning_rate))
-    plt.show()
-
-    return parameters
-
-
-def model1(X, Y, layers_dims, optimizer, learning_rate=0.0007, mini_batch_size=64, beta=0.9,
-          beta1=0.9, beta2=0.999, epsilon=1e-8, num_epochs=10000, print_cost=True):
-    """
-    3-layer neural network model which can be run in different optimizer modes.
-
-    Arguments:
-    X -- input data, of shape (2, number of examples)
-    Y -- true "label" vector (1 for blue dot / 0 for red dot), of shape (1, number of examples)
-    layers_dims -- python list, containing the size of each layer
-    learning_rate -- the learning rate, scalar.
-    mini_batch_size -- the size of a mini batch
-    beta -- Momentum hyperparameter
-    beta1 -- Exponential decay hyperparameter for the past gradients estimates
-    beta2 -- Exponential decay hyperparameter for the past squared gradients estimates
-    epsilon -- hyperparameter preventing division by zero in Adam updates
-    num_epochs -- number of epochs
-    print_cost -- True to print the cost every 1000 epochs
-
-    Returns:
-    parameters -- python dictionary containing your updated parameters
-    """
-
-    L = len(layers_dims)  # number of layers in the neural networks
-    costs = []  # to keep track of the cost
-    t = 0  # initializing the counter required for Adam update
-    seed = 10  # For grading purposes, so that your "random" minibatches are the same as ours
-    m = X.shape[1]  # number of training examples
-
-    # Initialize parameters
-    parameters = initialize_parameters(layers_dims)
-
-    # Initialize the optimizer
-    if optimizer == "gd":
-        pass  # no initialization required for gradient descent
-    elif optimizer == "momentum":
-        v = initialize_velocity(parameters)
-    elif optimizer == "adam":
-        v, s = initialize_adam(parameters)
-
-    # Optimization loop
-    for i in range(num_epochs):
-
-        # Define the random minibatches. We increment the seed to reshuffle differently the dataset after each epoch
-        seed = seed + 1
-        minibatches = random_mini_batches(X, Y, mini_batch_size, seed)
-        cost_total = 0
-
-        for minibatch in minibatches:
-
-            # Select a minibatch
-            (minibatch_X, minibatch_Y) = minibatch
-
-            # Forward propagation
-            a3, caches = forward_propagation(minibatch_X, parameters)
-
-            # Compute cost and add to the cost total
-            cost_total += compute_cost(a3, minibatch_Y)
-
-            # Backward propagation
-            grads = backward_propagation(minibatch_X, minibatch_Y, caches)
-
-            # Update parameters
-            if optimizer == "gd":
-                parameters = update_parameters_with_gd(parameters, learning_rate, grads)
-            elif optimizer == "momentum":
-                parameters, v = update_parameters_with_momentum(parameters, grads, v, beta, learning_rate)
-            elif optimizer == "adam":
-                t = t + 1  # Adam counter
-                parameters, v, s = update_parameters_with_adam(parameters, grads, v, s,
-                                                               t, learning_rate, beta1, beta2, epsilon)
         cost_avg = cost_total / m
 
-        # Print the cost every 1000 epoch
-        if print_cost and i % 1000 == 0:
-            print("Cost after epoch %i: %f" % (i, cost_avg))
+        if print_cost and i % 1000==0:
+            print("Cost after epoch %i:%f" % (i,cost_avg))
         if print_cost and i % 100 == 0:
             costs.append(cost_avg)
 
@@ -360,17 +271,67 @@ def model1(X, Y, layers_dims, optimizer, learning_rate=0.0007, mini_batch_size=6
     plt.show()
 
     return parameters
+
+
+#------------------------------------------测试梯度下降----------------------------------------------
 #Mini-batch Gradient descent
-# train 3-layer model
+#train 3-layer model
+print("-----------Number 1-----------")
 layers_dims = [train_X.shape[0], 5, 2, 1]
 parameters = model(train_X, train_Y, layers_dims, optimizer = "gd")
 
 # Predict
 predictions = predict(train_X, train_Y, parameters)
 
-# Plot decision boundary
+#Plot decision boundary
 plt.title("Model with Gradient Descent optimization")
 axes = plt.gca()
 axes.set_xlim([-1.5,2.5])
 axes.set_ylim([-1,1.5])
 plot_decision_boundary(lambda x: predict_dec(parameters, x.T), train_X, train_Y)
+
+
+#-------------------------------------------------Mini-batch gradient descent with momentum------------------------------------
+print("-----------Number 2-----------")
+layers_dims = [train_X.shape[0], 5, 2, 1]
+parameters = model(train_X, train_Y, layers_dims, beta = 0.9, optimizer = "momentum")
+
+# Predict
+predictions = predict(train_X, train_Y, parameters)
+
+# Plot decision boundary
+plt.title("Model with Momentum optimization")
+axes = plt.gca()
+axes.set_xlim([-1.5,2.5])
+axes.set_ylim([-1,1.5])
+plot_decision_boundary(lambda x: predict_dec(parameters, x.T), train_X, train_Y)
+
+
+#-------------------------------------------------Mini-batch gradient descent with Adam------------------------------------
+# train 3-layer model
+print("----------------Number 3---------------")
+layers_dims = [train_X.shape[0], 5, 2, 1]
+parameters = model(train_X, train_Y, layers_dims, optimizer = "adam")
+
+# Predict
+predictions = predict(train_X, train_Y, parameters)
+
+# Plot decision boundary
+plt.title("Model with Adam optimization")
+axes = plt.gca()
+axes.set_xlim([-1.5,2.5])
+axes.set_ylim([-1,1.5])
+plot_decision_boundary(lambda x: predict_dec(parameters, x.T), train_X, train_Y)
+
+
+#---------------------------------------Summary---------------------------------------
+# Momentum usually helps, but given the small learning rate and the simplistic(过分简单化的) dataset, its impact is almost negligeable.
+# Also, the huge oscillations you see in the cost come from the fact that some minibatches are more difficult thans others
+# for the optimization algorithm.
+#
+# Adam on the other hand, clearly outperforms(胜过) mini-batch gradient descent and Momentum. If you run the model for more epochs
+# on this simple dataset, all three methods will lead to very good results. However, you've seen that Adam converges a lot faster.
+#
+# Some advantages of Adam include:
+#   ·Relatively low memory requirements (though higher than gradient descent and gradient descent with momentum)
+#   ·Usually works well even with little tuning of hyperparameters (except  αα )

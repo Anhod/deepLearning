@@ -1,30 +1,30 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import matplotlib.pyplot as plt
+import h5py
+import scipy.io
 import sklearn
 import sklearn.datasets
 
 def sigmoid(x):
     """
     Compute the sigmoid of x
- 
+
     Arguments:
     x -- A scalar or numpy array of any size.
- 
+
     Return:
     s -- sigmoid(x)
     """
     s = 1/(1+np.exp(-x))
     return s
- 
+
 def relu(x):
     """
     Compute the relu of x
- 
+
     Arguments:
     x -- A scalar or numpy array of any size.
- 
+
     Return:
     s -- relu(x)
     """
@@ -38,14 +38,15 @@ def load_params_and_grads(seed=1):
     b1 = np.random.randn(2,1)
     W2 = np.random.randn(3,3)
     b2 = np.random.randn(3,1)
- 
+
     dW1 = np.random.randn(2,3)
     db1 = np.random.randn(2,1)
     dW2 = np.random.randn(3,3)
     db2 = np.random.randn(3,1)
     
     return W1, b1, W2, b2, dW1, db1, dW2, db2
-    
+
+
 def initialize_parameters(layer_dims):
     """
     Arguments:
@@ -67,16 +68,40 @@ def initialize_parameters(layer_dims):
     np.random.seed(3)
     parameters = {}
     L = len(layer_dims) # number of layers in the network
- 
+
     for l in range(1, L):
         parameters['W' + str(l)] = np.random.randn(layer_dims[l], layer_dims[l-1])*  np.sqrt(2 / layer_dims[l-1])
         parameters['b' + str(l)] = np.zeros((layer_dims[l], 1))
         
-        assert(parameters['W' + str(l)].shape == layer_dims[l], layer_dims[l-1])
-        assert(parameters['W' + str(l)].shape == layer_dims[l], 1)
+        assert parameters['W' + str(l)].shape[0] == layer_dims[l], layer_dims[l-1]
+        assert parameters['W' + str(l)].shape[0] == layer_dims[l], 1
         
     return parameters
+
+
+def compute_cost(a3, Y):
     
+    """
+    Implement the cost function
+    
+    Arguments:
+    a3 -- post-activation, output of forward propagation
+    Y -- "true" labels vector, same shape as a3
+    
+    Returns:
+    cost - value of the cost function without dividing by number of training examples
+    
+    Note: 
+    This is used with mini-batches, 
+    so we'll first accumulate costs over an entire epoch 
+    and then divide by the m training examples
+    """
+    
+    logprobs = np.multiply(-np.log(a3),Y) + np.multiply(-np.log(1 - a3), 1 - Y)
+    cost_total =  np.sum(logprobs)
+    
+    return cost_total
+
 def forward_propagation(X, parameters):
     """
     Implements the forward propagation (and computes the loss) presented in Figure 2.
@@ -114,7 +139,7 @@ def forward_propagation(X, parameters):
     cache = (z1, a1, W1, b1, z2, a2, W2, b2, z3, a3, W3, b3)
     
     return a3, cache
- 
+
 def backward_propagation(X, Y, cache):
     """
     Implement the backward propagation presented in figure 2.
@@ -149,26 +174,7 @@ def backward_propagation(X, Y, cache):
                  "da1": da1, "dz1": dz1, "dW1": dW1, "db1": db1}
     
     return gradients
- 
-def compute_cost(a3, Y):
-    
-    """
-    Implement the cost function
-    
-    Arguments:
-    a3 -- post-activation, output of forward propagation
-    Y -- "true" labels vector, same shape as a3
-    
-    Returns:
-    cost - value of the cost function
-    """
-    m = Y.shape[1]
-    
-    logprobs = np.multiply(-np.log(a3),Y) + np.multiply(-np.log(1 - a3), 1 - Y)
-    cost = 1./m * np.sum(logprobs)
-    
-    return cost
- 
+
 def predict(X, y, parameters):
     """
     This function is used to predict the results of a  n-layer neural network.
@@ -193,32 +199,26 @@ def predict(X, y, parameters):
             p[0,i] = 1
         else:
             p[0,i] = 0
- 
+
     # print results
- 
+
     #print ("predictions: " + str(p[0,:]))
     #print ("true labels: " + str(y[0,:]))
     print("Accuracy: "  + str(np.mean((p[0,:] == y[0,:]))))
     
     return p
- 
-def predict_dec(parameters, X):
-    """
-    Used for plotting decision boundary.
+
+def load_2D_dataset():
+    data = scipy.io.loadmat('datasets/data.mat')
+    train_X = data['X'].T
+    train_Y = data['y'].T
+    test_X = data['Xval'].T
+    test_Y = data['yval'].T
+
+    plt.scatter(train_X[0, :], train_X[1, :], c=train_Y, s=40, cmap=plt.cm.Spectral);
     
-    Arguments:
-    parameters -- python dictionary containing your parameters 
-    X -- input data of size (m, K)
-    
-    Returns
-    predictions -- vector of predictions of our model (red: 0 / blue: 1)
-    """
-    
-    # Predict using forward propagation and a classification threshold of 0.5
-    a3, cache = forward_propagation(X, parameters)
-    predictions = (a3 > 0.5)
-    return predictions
- 
+    return train_X, train_Y, test_X, test_Y
+
 def plot_decision_boundary(model, X, y):
     # Set min and max values and give it some padding
     x_min, x_max = X[0, :].min() - 1, X[0, :].max() + 1
@@ -235,13 +235,29 @@ def plot_decision_boundary(model, X, y):
     plt.xlabel('x1')
     plt.scatter(X[0, :], X[1, :], c = np.squeeze(y), cmap=plt.cm.Spectral)
     plt.show()
- 
-def load_dataset(is_plot = True):
+    
+def predict_dec(parameters, X):
+    """
+    Used for plotting decision boundary.
+    
+    Arguments:
+    parameters -- python dictionary containing your parameters 
+    X -- input data of size (m, K)
+    
+    Returns
+    predictions -- vector of predictions of our model (red: 0 / blue: 1)
+    """
+    
+    # Predict using forward propagation and a classification threshold of 0.5
+    a3, cache = forward_propagation(X, parameters)
+    predictions = (a3 > 0.5)
+    return predictions
+
+def load_dataset():
     np.random.seed(3)
     train_X, train_Y = sklearn.datasets.make_moons(n_samples=300, noise=.2) #300 #0.2 
     # Visualize the data
-    if is_plot:
-        plt.scatter(train_X[:, 0], train_X[:, 1], c=train_Y, s=40, cmap=plt.cm.Spectral);
+    plt.scatter(train_X[:, 0], train_X[:, 1], c=train_Y, s=40, cmap=plt.cm.Spectral);
     train_X = train_X.T
     train_Y = train_Y.reshape((1, train_Y.shape[0]))
     
