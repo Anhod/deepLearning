@@ -69,3 +69,29 @@ assign data to only later, when running the session. We say that you feed data t
 construct a computation graph. The computation graph can have some placeholders whose values you will specify only later. 
 Finally, when you run the session, you are telling TensorFlow to execute the computation graph.
 '''
+
+#-----------------------------------------------------------------------------------------------------------------------
+#Linear function
+'''
+    Lets start this programming exercise by computing the following equation:  Y = WX + b,where W and X are random matrices 
+and b is a random vector.
+    Exercise: Compute WX+b where W,X and b are drawn from a random normal distribution. W is of shape (4, 3), X is (3,1) 
+and b is (4,1). As an example, here is how you would define a constant X that has shape (3,1):
+        X = tf.constant(np.random.randn(3,1), name = "X")
+'''
+def linear_function():
+    np.random.seed(1)
+
+    X = tf.constant(np.random.randn(3,1),name = "X")
+    W = tf.constant(np.random.randn(4,3),name = "W")
+    b = tf.constant(np.random.randn(4,1),name = "b")
+    Y = tf.add(tf.matmul(W,X),b)
+
+    sess = tf.Session()
+    result = sess.run(Y)            #run里面的参数是我们想要计算得出的结果
+
+    sess.close()                    #记得关闭会话
+
+    return result
+
+print( "result = \n" + str(linear_function()))
